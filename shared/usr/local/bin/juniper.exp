@@ -1,0 +1,549 @@
+#!/usr/bin/expect -f
+
+set force_conservative 0  ;# set to 1 to force conservative mode even if
+			  ;# script wasn't run conservatively originally
+if {$force_conservative} {
+	set send_slow {1 .1}
+	proc send {ignore arg} {
+		sleep .1
+		exp_send -s -- $arg
+	}
+}
+
+#disable outputting to stdout
+log_user 0
+
+#set command timeout
+set timeout 2
+
+#parse command line arguements
+set range [lindex $argv 0]
+set device [lindex $argv 1]
+set hostname $range-$device
+set loghost 10.3.0.30
+
+#start configuration
+puts ####################################################
+puts "  Starting Configuration"
+puts "  $range - $device"
+puts ----------------------------------------------------
+exec /usr/bin/logger -n $loghost $hostname: starting configuration
+
+#get console switcher ip host.address
+set address_file [open "/usr/local/etc/sync/conf.d/$range/host.address"]
+set address [read $address_file]
+close $address_file
+exec /usr/bin/logger -n $loghost $hostname: host address - $address
+
+#get login username from file host.user
+set login_file [open "/usr/local/etc/sync/conf.d/$range/host.login"]
+set login [read $login_file]
+close $login_file
+exec /usr/bin/logger -n $loghost $hostname: login - $login
+
+#get login password from file host.pass
+set pass_file [open "/usr/local/etc/sync/conf.d/$range/host.pass"]
+set pass [read $pass_file]
+close $pass_file
+exec /usr/bin/logger -n $loghost $hostname: login pass - NOT DISPLAYED
+
+#set root login password root.pass
+set pass_file_root [open "/usr/local/etc/sync/conf.d/$range/root.pass"]
+set pass_root [read $pass_file_root]
+close $pass_file_root
+exec /usr/bin/logger -n $loghost $hostname: root pass - NOT DISPLAYED
+
+#set kadmin login password kadmin.pass
+set pass_file_kadmin [open "/usr/local/etc/sync/conf.d/$range/kadmin.pass"]
+set pass_kadmin [read $pass_file_kadmin]
+close $pass_file_kadmin
+exec /usr/bin/logger -n $loghost $hostname: kadmin pass - NOT DISPLAYED
+
+#set instructor login password instructor.pass
+set pass_file_instructor [open "/usr/local/etc/sync/conf.d/$range/instructor.pass"]
+set pass_instructor [read $pass_file_instructor]
+close $pass_file_instructor
+exec /usr/bin/logger -n $loghost $hostname: instructor pass - NOT DISPLAYED
+
+#set student-left password student-left.pass
+set pass_file_student_left [open "/usr/local/etc/sync/conf.d/$range/student-left.pass"]
+set pass_student_left [read $pass_file_student_left]
+close $pass_file_student_left
+exec /usr/bin/logger -n $loghost $hostname: student_left pass - NOT DISPLAYED
+
+#set student-left password student-right.pass
+set pass_file_student_right [open "/usr/local/etc/sync/conf.d/$range/student-right.pass"]
+set pass_student_right [read $pass_file_student_right]
+close $pass_file_student_right
+exec /usr/bin/logger -n $loghost $hostname: student_right pass - NOT DISPLAYED
+
+switch $device {
+	router {
+		exec /usr/bin/logger -n $loghost $range: configure - router
+		set port 7001
+		set config_file router.cfg
+	}
+	switch-left {
+		exec /usr/bin/logger -n $loghost $hostname: configure - switch-left
+		set port 7002
+		set config_file switch-left.cfg
+	}
+	switch-right {
+		exec /usr/bin/logger -n $loghost $hostname: configure - switch-right
+		set port 7003
+		set config_file switch-right.cfg
+	}
+	router-rescue {
+		exec /usr/bin/logger -n $loghost $range: rescue - router
+		set port 7001
+		set config_file rescue.cfg
+	}
+	switch-left-rescue {
+		exec /usr/bin/logger -n $loghost $hostname: rescue - switch-left
+		set port 7002
+		set config_file rescue.cfg
+	}
+	switch-right-rescue {
+		exec /usr/bin/logger -n $loghost $hostname: rescue - switch-right
+		set port 7003
+		set config_file rescue.cfg
+	}
+	gns3-router {
+		exec /usr/bin/logger -n $loghost $hostname: configure - gns3
+		set port 5010
+		set config_file router.cfg
+	}
+	gns3-switch-left {
+		exec /usr/bin/logger -n $loghost $hostname: configure - gns3
+		set port 5020
+		set config_file switch-left.cfg
+	}
+	gns3-switch-right {
+		exec /usr/bin/logger -n $loghost $hostname: configure - gns3
+		set port 5024
+		set config_file switch-right.cfg
+	}
+	default {
+		expect eof
+	}
+}
+
+#parse configuration router.cfg
+set config_file_name [open "/usr/local/etc/sync/conf.d/$range/$config_file"]
+set config [split [read $config_file_name] "\n"]
+close $config_file_name
+
+#start session
+case $device {
+	gns3-router {
+		exec /usr/bin/logger -n $loghost $hostname: spawning telnet
+		puts "  Starting:  Spawining Telnet"
+		spawn telnet $address $port
+	}
+	gns3-switch-left {
+		exec /usr/bin/logger -n $loghost $hostname: spawning telnet
+		puts "  Starting:  Spawining Telnet"
+		spawn telnet $address $port
+	}
+	gns3-switch-right {
+		exec /usr/bin/logger -n $loghost $hostname: spawning telnet
+		puts "  Starting:  Spawining Telnet"
+		spawn telnet $address $port
+	}
+	default {
+		exec /usr/bin/logger -n $loghost $hostname: spawning ssh
+		puts "  Starting:  Spawining SSH"
+		spawn ssh $address -p $port
+	}
+}
+sleep 5
+
+#accept ssh cert
+expect "(yes/no)?" { send "yes\r" }
+
+#engage the console port
+sleep 2
+send -- "\r"
+
+#cleanup for device left in wrong state
+##displaying continuation of configuration file
+puts " "
+puts ----------------------------------------------------
+puts "  Cleanup"
+puts ----------------------------------------------------
+puts "  Cleanup:  Checking for display of configuration state"
+exec /usr/bin/logger -n $loghost $hostname: checking for display of configuration state
+send "\r"
+expect "more" {
+	puts "  Cleanup:  Displaying Configuration, quitting"
+	exec /usr/bin/logger -n $loghost $hostname: displaying configuration
+	send "q" 
+}
+
+##cli mode
+send "\r"
+puts "  Cleanup:  Checking for CLI mode"
+exec /usr/bin/logger -n $loghost $hostname: checking for cli mode
+expect {
+	":~ #" { 
+		puts "  Cleanup:  Device in CLI Mode, Exiting"
+		exec /usr/bin/logger -n $loghost $hostname: device in cli mode, exiting
+		send "exit\r"
+	}
+	"RE:0" { 
+		puts "  Cleanup:  Device in CLI Mode, Exiting"
+		exec /usr/bin/logger -n $loghost $hostname: device in cli mode, exiting
+		send "exit\r"
+	}
+}
+##config mode
+exec /usr/bin/logger -n $loghost $hostname: checking for configuration mode
+expect "#" { 
+	puts "  Cleanup:  Device in in CONFIG mode, exiting"
+	exec /usr/bin/logger -n $loghost $hostname: device in config mode, exiting
+	send "exit\r"
+}
+
+##pending uncommitted changes
+puts "  Cleanup:  Checking for Uncommitted Changes"
+exec /usr/bin/logger -n $loghost $hostname: checking for uncommitted changes
+expect "Exit with uncommitted changes?" {
+	puts "  Cleanup:  Uncommitted Changes Found"
+	exec /usr/bin/logger -n $loghost $hostname: device has uncommitted changes, rolling back
+	send "yes\n"
+	expect "#" { send "rollback\r" }
+	expect "#" { send "exit\r" }
+}
+
+##exec mode
+puts "  Cleanup:  Checking for EXEC mode"
+exec /usr/bin/logger -n $loghost $hostname: checking for exec mode
+expect ">" { 
+	puts "  Cleanup:  Device in EXEC mode, exiting"
+	exec /usr/bin/logger -n $loghost $hostname: device in exec mode, exiting
+	send "exit\r"
+}
+##cli mode
+puts "  Cleanup:  Checking for CLI mode"
+exec /usr/bin/logger -n $loghost $hostname: checking for cli mode
+expect {
+	":~ #" { 
+		puts "  Cleanup:  Device in CLI mode, Exiting"
+		exec /usr/bin/logger -n $loghost $hostname: device in cli mode, exiting
+		send "exit\r"
+	}
+	"RE:0%" { 
+		puts "  Cleanup:  Device in CLI mode, Exiting"
+		exec /usr/bin/logger -n $loghost $hostname: device in cli mode, exiting
+		send "exit\r"
+	}
+}
+
+#login
+puts ----------------------------------------------------
+puts "  System Prep"
+puts ----------------------------------------------------
+
+expect "login:" {
+	puts "  System Prep:  Logging In"
+	exec /usr/bin/logger -n $loghost $hostname: logging in as $login
+	send "$login\r"
+}
+expect {
+	":~ #" {
+		puts "  System Prep:  No password"
+		exec /usr/bin/logger -n $loghost $hostname: no password
+		expect "#" { send "clear\r" }
+	}
+	"RE:0%" {
+		puts "  System Prep:  No password"
+		exec /usr/bin/logger -n $loghost $hostname: no password
+		expect "%" { send "clear\r" }
+	}
+	"Password:" {
+		puts "  System Prep:  Sending Password"
+		exec /usr/bin/logger -n $loghost $hostname: sending password
+		send "$pass\r"
+		sleep 1
+		send "clear\r"
+	}
+}
+
+#cli mode
+send "\r"
+expect {
+	":~ #" {
+		puts "  System Prep:  CLI mode"
+		exec /usr/bin/logger -n $loghost $hostname: cli mode
+		puts "  System Prep:  Entering EXEC mode"
+		exec /usr/bin/logger -n $loghost $hostname: entering exec mode
+		send "cli\r"
+	}
+	"RE:0%" {
+		puts "  System Prep:  CLI mode"
+		exec /usr/bin/logger -n $loghost $hostname: cli mode
+		puts "  System Prep:  Entering EXEC mode"
+		exec /usr/bin/logger -n $loghost $hostname: entering exec mode
+		send "cli\r"
+	}
+}
+expect ">" {
+	puts "  System Prep:  EXEC mode"
+	exec /usr/bin/logger -n $loghost $hostname: exec mode
+	puts "  System Prep:  Entering CONFIGURE mode"
+	exec /usr/bin/logger -n $loghost $hostname: entering configure mode
+	send "configure\r"
+}
+expect "#" {
+	puts "  System Prep:  CONFIGURE mode"
+	exec /usr/bin/logger -n $loghost $hostname: configure mode
+}
+
+#set system user authentication
+set timeout 10
+send "\r"
+puts ----------------------------------------------------
+puts "  Authentication"
+puts ----------------------------------------------------
+
+expect "#" { send "delete system login\r" }
+expect "#" { send "unprotect system root-authentication\r" }
+expect "#" { send "unprotect system login\r" }
+expect "#" { send "unprotect system login user instructor\r" }
+expect "#" { send "unprotect system login user kadmin\r" }
+expect "#" { send "unprotect system login user student-left\r" }
+expect "#" { send "unprotect system login user student-right\r" }
+
+##root
+expect "#" {
+	exec /usr/bin/logger -n $loghost $hostname: setting instructor password
+	puts "  Auth:  Root Password"
+
+	send "set system root-authentication plain-text-password\r"
+	expect "password:" {
+		send "$pass_root\r"
+puts $pass_root
+	}
+	expect "password:" {
+		send "$pass_root\r"
+	}
+puts $pass_root
+}
+##instructor
+expect "#" {
+	exec /usr/bin/logger -n $loghost $hostname: setting instructor password
+	puts "  Auth:  Instructor Password"
+
+	send "set system login user instructor class instructors authentication plain-text-password\r"
+	expect "password:" {
+		send "$pass_instructor\r"
+	}
+	expect "password:" {
+		send "$pass_instructor\r"
+	}
+}
+##kadmin
+expect "#" {
+	exec /usr/bin/logger -n $loghost $hostname: setting kadmin password
+	puts "  Auth:  KAdmin Password"
+	send "set system login user kadmin class super-user authentication plain-text-password\r"
+	expect "password:" {
+		send "$pass_kadmin\r"
+	}
+	expect "password:" {
+		send "$pass_kadmin\r"
+	}
+}
+
+case $device {
+	gns3-router {
+		##student-left
+		expect "#" {
+			exec /usr/bin/logger -n $loghost $hostname: setting student-left password
+			puts "  Auth:  student-left password"
+			send "set system login user student-left class students authentication plain-text-password\r"
+			expect "password:" {
+				send "$pass_student_left\r"
+			}
+			expect "password:" {
+				send "$pass_student_left\r"
+			}
+		}
+		##student-right
+		expect "#" {
+			exec /usr/bin/logger -n $loghost $hostname: setting student-right password
+			puts "  Auth:  student-right password"
+
+			send "set system login user student-right class students authentication plain-text-password\r"
+			expect "password:" {
+				send "$pass_student_right\r"
+			}
+			expect "password:" {
+				send "$pass_student_right\r"
+			}
+		}
+	}
+	gns3-switch-left {
+		##student-left
+		expect "#" {
+			exec /usr/bin/logger -n $loghost $hostname: setting student-left password
+			puts "  Auth:  student-left password"
+			send "set system login user student-left class students authentication plain-text-password\r"
+			expect "password:" {
+				send "$pass_student_left\r"
+			}
+			expect "password:" {
+				send "$pass_student_left\r"
+			}
+		}
+	}
+	gns3-switch-right {
+		##student-right
+		expect "#" {
+			exec /usr/bin/logger -n $loghost $hostname: setting student-right password
+			puts "  Auth:  student-right password"
+
+			send "set system login user student-right class students authentication plain-text-password\r"
+			expect "password:" {
+				send "$pass_student_right\r"
+			}
+			expect "password:" {
+				send "$pass_student_right\r"
+			}
+		}
+	}
+	router {
+		##student-left
+		expect "#" {
+			exec /usr/bin/logger -n $loghost $hostname: setting student-left password
+			puts "  Auth:  student-left password"
+			send "set system login user student-left class students authentication plain-text-password\r"
+			expect "password:" {
+				send "$pass_student_left\r"
+			}
+			expect "password:" {
+				send "$pass_student_left\r"
+			}
+		}
+		##student-right
+		expect "#" {
+			exec /usr/bin/logger -n $loghost $hostname: setting student-right password
+			puts "  Auth:  student-right password"
+
+			send "set system login user student-right class students authentication plain-text-password\r"
+			expect "password:" {
+				send "$pass_student_right\r"
+			}
+			expect "password:" {
+				send "$pass_student_right\r"
+			}
+		}
+	}
+	switch-left {
+		##student-left
+		expect "#" {
+			exec /usr/bin/logger -n $loghost $hostname: setting student-left password
+			puts "  Auth:  student-left password"
+
+			send "set system login user student-left class students authentication plain-text-password\r"
+			expect "password:" {
+				send "$pass_student_left\r"
+			}
+			expect "password:" {
+				send "$pass_student_left\r"
+			}
+		}
+	}
+	switch-right {
+		##student-right
+		expect "#" {
+			exec /usr/bin/logger -n $loghost $hostname: setting student-right password
+			puts "  Auth:  student-right password"
+
+			send "set system login user student-right class students authentication plain-text-password\r"
+			expect "password:" {
+				send "$pass_student_right\r"
+			}
+			expect "password:" {
+				send "$pass_student_right\r"
+			}
+		}
+	}
+}
+
+puts ----------------------------------------------------
+puts "  Configuration"
+puts ----------------------------------------------------
+
+#execute configuration file
+set timeout 10
+send "\r"
+foreach line $config {
+	expect "#" {
+		puts "  Executing: $line"
+		exec /usr/bin/logger -n $loghost $hostname: executing - $line
+		send "$line\r"
+		sleep 1
+	}
+}
+
+#allow system to normalize
+sleep 15
+
+#exiting to login prompt
+puts ----------------------------------------------------
+puts "  Exiting"
+puts ----------------------------------------------------
+
+##config mode
+set timeout 20
+send "\r"
+expect "#" { 
+	puts "  Exiting:  Device in CONFIG mode, exiting"
+	exec /usr/bin/logger -n $loghost $hostname: device in config mode, exiting
+	send "exit\r"
+}
+send "\r"
+expect ">" { 
+	puts "  Exiting:  Device in EXEC mode, exiting"
+	exec /usr/bin/logger -n $loghost $hostname: device in exec mode, exiting
+	send "exit\r"
+}
+##cli mode
+send "\r"
+expect {
+	":~ #" { 
+		puts "  Exiting:  Device in CLI mode, exiting"
+		exec /usr/bin/logger -n $loghost $hostname: device in cli mode, exiting
+		send "exit\r"
+	}
+	"RE:0%" {
+		puts "  Exiting:  Device in CLI mode, exiting"
+		exec /usr/bin/logger -n $loghost $hostname: device in cli mode, exiting
+		send "exit\r"
+	}
+}
+
+#exit
+case $device {
+	gns3-router {
+		puts "  Exiting:  Ending Telnet"
+		exec /usr/bin/logger -n $loghost $hostname: ending telnet
+	}
+	gns3-switch-left {
+		puts "  Exiting:  Ending Telnet"
+		exec /usr/bin/logger -n $loghost $hostname: ending telnet
+	}
+	gns3-switch-right {
+		puts "  Exiting:  Ending Telnet"
+		exec /usr/bin/logger -n $loghost $hostname: ending telnet
+	}
+	default {
+		puts "  Exiting:  Ending SSH"
+		exec /usr/bin/logger -n $loghost $hostname: ending ssh
+	}
+}
+puts ####################################################
+
+set timeout 0
+expect eof

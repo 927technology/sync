@@ -1,0 +1,12 @@
+version: "3.2"
+
+services:
+  ms:
+#    build:
+#      context: ./ms/.
+    hostname: ms
+    image: sync_ms
+    volumes:
+      - ./ms/usr/local/bin:/usr/local/bin
+      - ./ms/usr/local/etc:/usr/local/etc
+      - ./ms/usr/local/lib:/usr/local/lib
