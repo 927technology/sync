@@ -434,10 +434,10 @@ case $device {
 			puts "  Auth:  student-left password"
 			send "set system login user student-left class students authentication plain-text-password\r"
 			expect "password:" {
-					send "$pass_student_left\r"
+				send "$pass_student_left\r"
 			}
 			expect "password:" {
-					send "$pass_student_left\r"
+				send "$pass_student_left\r"
 			}
 		}
 		##student-right
@@ -447,10 +447,10 @@ case $device {
 
 			send "set system login user student-right class students authentication plain-text-password\r"
 			expect "password:" {
-					send "$pass_student_right\r"
+				send "$pass_student_right\r"
 			}
 			expect "password:" {
-					send "$pass_student_right\r"
+				send "$pass_student_right\r"
 			}
 		}
 	}
@@ -461,10 +461,10 @@ case $device {
 			puts "  Auth:  student-left password"
 			send "set system login user student-left class students authentication plain-text-password\r"
 			expect "password:" {
-					send "$pass_student_left\r"
+				send "$pass_student_left\r"
 			}
 			expect "password:" {
-					send "$pass_student_left\r"
+				send "$pass_student_left\r"
 			}
 		}
 	}
@@ -476,10 +476,10 @@ case $device {
 
 			send "set system login user student-right class students authentication plain-text-password\r"
 			expect "password:" {
-					send "$pass_student_right\r"
+				send "$pass_student_right\r"
 			}
 			expect "password:" {
-					send "$pass_student_right\r"
+				send "$pass_student_right\r"
 			}
 		}
 	}
