@@ -426,7 +426,7 @@ expect "#" {
 }
 
 																									#perform action based on device type
-case $device {
+case --regexp $device {
 	gns3-router {
 		##student-left
 		expect "#" {
@@ -485,7 +485,7 @@ case $device {
 	}
 																									#testing to see if this works
 																									#wildcard match for tshoot and regular devices
-	*router {
+	{ *router } {
 		##student-left
 		expect "#" {
 			exec /usr/bin/logger -n $loghost $hostname: setting student-left password
@@ -512,7 +512,7 @@ case $device {
 			}
 		}
 	}
-	*switch-left {
+	{ *switch-left } {
 		##student-left
 		expect "#" {
 			exec /usr/bin/logger -n $loghost $hostname: setting student-left password
@@ -527,7 +527,7 @@ case $device {
 			}
 		}
 	}
-	*switch-right {
+	{ *switch-right } {
 		##student-right
 		expect "#" {
 			exec /usr/bin/logger -n $loghost $hostname: setting student-right password
