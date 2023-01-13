@@ -25,6 +25,7 @@ for line in `cat passwords`; do
 	cp -R cyfun_cs00/switch-left.cfg cyfun_${range}/
 	cp -R cyfun_cs00/switch-right.cfg cyfun_${range}/
 	cp -R cyfun_cs00/rescue.cfg cyfun_${range}/
+	cp -R cyfun_cs00/tshoot*.cfg cyfun_${range}/
 	cp -R cyfun_cs00/host.address cyfun_${range}/
 	cp -R cyfun_cs00/host.login cyfun_${range}/
 	cp -R cyfun_cs00/host.pass cyfun_${range}/
