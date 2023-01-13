@@ -139,10 +139,8 @@ switch --regexp $device {
 		set port 5024
 		set config_file switch-right.cfg
 	}
-																									#does this work using the device variable
-																									#in a larger variable.  
-																									#create a subfolder for the tshoot## with
-																									#the device type config file within
+																									#regex matching
+																									#create config files named tshoot##-router etc
 	{ tshooot*-router } {
 		exec /usr/bin/logger -n $loghost $hostname: configure - $device
 		set port 7001
